@@ -1,1 +1,11 @@
-# repo-template
+
+  # Focus Quest Platform UI
+
+  This is a code bundle for Focus Quest Platform UI. The original project is available at https://www.figma.com/design/um9uPN31e8SqbEAUJ1p4r7/Focus-Quest-Platform-UI.
+
+  ## Running the code
+
+  Run `npm i` to install the dependencies.
+
+  Run `npm run dev` to start the development server.
+  

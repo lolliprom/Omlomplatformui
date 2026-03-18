@@ -1,0 +1,163 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { Task, UserStats, OmlomState, Reward } from '../types';
+
+interface GameStore {
+  tasks: Task[];
+  stats: UserStats;
+  omlom: OmlomState;
+  inventory: string[];
+  
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'completed'>) => void;
+  completeTask: (taskId: string) => Reward;
+  deleteTask: (taskId: string) => void;
+  updateOmlomState: () => void;
+  addReward: (reward: Reward) => void;
+}
+
+const calculateReward = (taskValue: number): Reward => {
+  const baseMultiplier = taskValue / 100;
+  return {
+    gold: Math.floor(50 + taskValue * 5 * baseMultiplier),
+    xp: Math.floor(100 + taskValue * 10 * baseMultiplier),
+    auraShards: Math.floor(1 + taskValue / 20),
+    items: taskValue >= 80 ? ['Rare Item'] : taskValue >= 50 ? ['Uncommon Item'] : undefined,
+  };
+};
+
+const calculateOmlomState = (tasks: Task[]): OmlomState => {
+  const incompleteTasks = tasks.filter(t => !t.completed);
+  const totalWorkload = incompleteTasks.reduce((sum, t) => sum + t.value, 0);
+  const taskCount = incompleteTasks.length;
+  
+  const workloadLevel = Math.min(100, totalWorkload / 5);
+  
+  if (workloadLevel > 70) {
+    return {
+      mode: 'stressed',
+      workloadLevel,
+      mood: 'Overwhelmed 😰',
+      currentAura: 'red',
+    };
+  } else if (workloadLevel < 20 && taskCount === 0) {
+    return {
+      mode: 'happy',
+      workloadLevel,
+      mood: 'Relaxed & Happy 😊',
+      currentAura: 'rainbow',
+    };
+  } else {
+    return {
+      mode: 'normal',
+      workloadLevel,
+      mood: 'Focused 😌',
+      currentAura: 'blue',
+    };
+  }
+};
+
+export const useGameStore = create<GameStore>()(
+  persist(
+    (set, get) => ({
+      tasks: [],
+      stats: {
+        level: 1,
+        xp: 0,
+        nextLevelXp: 1000,
+        gold: 0,
+        auraShards: 0,
+        tasksCompleted: 0,
+        currentStreak: 0,
+        totalValue: 0,
+      },
+      omlom: {
+        mode: 'normal',
+        workloadLevel: 0,
+        mood: 'Ready to work! 😊',
+        currentAura: 'blue',
+      },
+      inventory: [],
+
+      addTask: (taskData) => {
+        const newTask: Task = {
+          ...taskData,
+          id: crypto.randomUUID(),
+          createdAt: new Date(),
+          completed: false,
+        };
+        set((state) => ({
+          tasks: [...state.tasks, newTask],
+        }));
+        get().updateOmlomState();
+      },
+
+      completeTask: (taskId) => {
+        const task = get().tasks.find(t => t.id === taskId);
+        if (!task || task.completed) {
+          return { gold: 0, xp: 0, auraShards: 0 };
+        }
+
+        const reward = calculateReward(task.value);
+        
+        set((state) => ({
+          tasks: state.tasks.map(t =>
+            t.id === taskId
+              ? { ...t, completed: true, completedAt: new Date() }
+              : t
+          ),
+        }));
+
+        get().addReward(reward);
+        get().updateOmlomState();
+        
+        return reward;
+      },
+
+      deleteTask: (taskId) => {
+        set((state) => ({
+          tasks: state.tasks.filter(t => t.id !== taskId),
+        }));
+        get().updateOmlomState();
+      },
+
+      updateOmlomState: () => {
+        const tasks = get().tasks;
+        const newOmlomState = calculateOmlomState(tasks);
+        set({ omlom: newOmlomState });
+      },
+
+      addReward: (reward) => {
+        set((state) => {
+          const newXp = state.stats.xp + reward.xp;
+          let newLevel = state.stats.level;
+          let newNextLevelXp = state.stats.nextLevelXp;
+
+          // Level up logic
+          if (newXp >= newNextLevelXp) {
+            newLevel += 1;
+            newNextLevelXp = newLevel * 1000;
+          }
+
+          return {
+            stats: {
+              ...state.stats,
+              xp: newXp,
+              level: newLevel,
+              nextLevelXp: newNextLevelXp,
+              gold: state.stats.gold + reward.gold,
+              auraShards: state.stats.auraShards + reward.auraShards,
+              tasksCompleted: state.stats.tasksCompleted + 1,
+              totalValue: state.stats.totalValue + (reward.xp / 10),
+            },
+            inventory: reward.items
+              ? [...state.inventory, ...reward.items]
+              : state.inventory,
+          };
+        });
+      },
+    }),
+    {
+      name: 'omlom-game-storage',
+    }
+  )
+);
