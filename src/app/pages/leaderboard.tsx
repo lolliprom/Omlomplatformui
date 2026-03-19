@@ -1,184 +1,230 @@
-import { useState } from 'react';
-import { Card } from '../components/ui/card';
-import { Avatar, AvatarFallback } from '../components/ui/avatar';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
-import { Trophy, Medal, Crown, Zap } from 'lucide-react';
-import { useGameStore } from '../store/game-store';
-import { LeaderboardEntry } from '../types';
+import { useMemo, useState } from "react";
+import { Crown, Medal, Trophy, Zap } from "lucide-react";
 
-// Mock leaderboard data
-const mockGlobalLeaderboard: LeaderboardEntry[] = [
-  { rank: 1, userId: '1', username: 'QueenBee_Anna', avatar: 'QB', level: 28, xp: 28500, tasksCompleted: 342, guild: 'Elite Scholars' },
-  { rank: 2, userId: '2', username: 'DragonSlayer_Tom', avatar: 'DS', level: 26, xp: 26800, tasksCompleted: 315, guild: 'Study Warriors' },
-  { rank: 3, userId: '3', username: 'StarGazer_Luna', avatar: 'SG', level: 25, xp: 25200, tasksCompleted: 298, guild: 'Night Owls' },
-  { rank: 4, userId: '4', username: 'Phoenix_Ray', avatar: 'PR', level: 24, xp: 24100, tasksCompleted: 287, guild: 'Elite Scholars' },
-  { rank: 5, userId: '5', username: 'Shadow_Kai', avatar: 'SK', level: 23, xp: 23400, tasksCompleted: 276 },
-  { rank: 6, userId: '6', username: 'Thunder_Max', avatar: 'TM', level: 22, xp: 22700, tasksCompleted: 265, guild: 'Study Warriors' },
-  { rank: 7, userId: '7', username: 'Crystal_Maya', avatar: 'CM', level: 22, xp: 22100, tasksCompleted: 251 },
-  { rank: 8, userId: '8', username: 'Blaze_Jordan', avatar: 'BJ', level: 21, xp: 21500, tasksCompleted: 242, guild: 'Fire Starters' },
-];
+import { buildLeaderboards } from "../demo-data";
+import { useGameStore } from "../store/game-store";
+import { Badge } from "../components/ui/badge";
+import { Card } from "../components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Avatar, AvatarFallback } from "../components/ui/avatar";
 
-const mockGuildLeaderboard: LeaderboardEntry[] = [
-  { rank: 1, userId: '2', username: 'DragonSlayer_Tom', avatar: 'DS', level: 26, xp: 26800, tasksCompleted: 315, guild: 'Study Warriors' },
-  { rank: 2, userId: '6', username: 'Thunder_Max', avatar: 'TM', level: 22, xp: 22700, tasksCompleted: 265, guild: 'Study Warriors' },
-  { rank: 3, userId: 'you', username: 'You', avatar: 'YO', level: 1, xp: 0, tasksCompleted: 0, guild: 'Study Warriors' },
-];
+type LeaderboardTab = "global" | "guild" | "weekly";
+
+const medalForRank = (rank: number) => {
+  if (rank === 1) {
+    return <Crown className="h-5 w-5 text-amber-500" />;
+  }
+
+  if (rank === 2) {
+    return <Medal className="h-5 w-5 text-slate-400" />;
+  }
+
+  if (rank === 3) {
+    return <Medal className="h-5 w-5 text-orange-500" />;
+  }
+
+  return <span className="text-sm font-medium text-slate-500">#{rank}</span>;
+};
 
 export default function Leaderboard() {
-  const [tab, setTab] = useState('global');
-  const { stats } = useGameStore();
+  const { profile, stats } = useGameStore();
+  const [tab, setTab] = useState<LeaderboardTab>("global");
+  const boards = buildLeaderboards(profile, stats);
 
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Crown className="w-6 h-6 text-yellow-500" />;
-      case 2:
-        return <Medal className="w-6 h-6 text-gray-400" />;
-      case 3:
-        return <Medal className="w-6 h-6 text-orange-600" />;
-      default:
-        return <span className="text-lg font-semibold text-gray-500">#{rank}</span>;
-    }
-  };
-
-  const getRankBadgeColor = (rank: number) => {
-    if (rank === 1) return 'bg-gradient-to-r from-yellow-400 to-yellow-600';
-    if (rank === 2) return 'bg-gradient-to-r from-gray-300 to-gray-400';
-    if (rank === 3) return 'bg-gradient-to-r from-orange-400 to-orange-600';
-    return 'bg-gray-100';
-  };
+  const selectedBoard = useMemo(() => boards[tab], [boards, tab]);
+  const playerEntry = selectedBoard.find((entry) => entry.isPlayer);
+  const rivalEntry =
+    playerEntry && playerEntry.rank > 1
+      ? selectedBoard[playerEntry.rank - 2]
+      : undefined;
+  const gapToNext =
+    tab === "weekly"
+      ? Math.max(0, (rivalEntry?.weeklyXp ?? 0) - (playerEntry?.weeklyXp ?? 0))
+      : Math.max(0, (rivalEntry?.xp ?? 0) - (playerEntry?.xp ?? 0));
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div className="pt-4">
-        <h1 className="text-3xl mb-1">Leaderboard</h1>
-        <p className="text-gray-600">Compete with students worldwide</p>
-      </div>
+    <div className="px-4 pb-24 pt-5 space-y-5">
+      <section className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-slate-500">Competitive loop</p>
+          <h1 className="text-3xl text-slate-950">Leaderboard</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Compare XP, weekly lift, and guild standing during the product sprint.
+          </p>
+        </div>
+        <Badge className="rounded-full px-3 py-1" variant="secondary">
+          {profile.guild}
+        </Badge>
+      </section>
 
-      {/* Your Rank Card */}
-      <Card className="p-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-purple-100">Your Global Rank</p>
-            <p className="text-3xl mb-1">#1,247</p>
-            <p className="text-sm text-purple-100">Level {stats.level} • {stats.tasksCompleted} quests</p>
+      <Card className="border-0 bg-[linear-gradient(135deg,#1d4ed8_0%,#0f172a_100%)] p-5 text-white shadow-xl">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.24em] text-blue-100">
+              Current position
+            </p>
+            <h2 className="text-3xl">#{playerEntry?.rank ?? "-"}</h2>
+            <p className="max-w-xs text-sm text-blue-100/90">
+              {tab === "weekly"
+                ? `${stats.weeklyXp} weekly XP on the board.`
+                : `${stats.xp} total XP and ${stats.tasksCompleted} cleared quests.`}
+            </p>
           </div>
-          <Trophy className="w-16 h-16 opacity-80" />
+          <Trophy className="h-12 w-12 text-amber-300" />
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-white/10 p-3">
+            <p className="text-xs uppercase tracking-wide text-blue-100">Level</p>
+            <p className="mt-1 text-2xl">{stats.level}</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 p-3">
+            <p className="text-xs uppercase tracking-wide text-blue-100">Gap to next</p>
+            <p className="mt-1 text-2xl">{gapToNext || 0}</p>
+          </div>
         </div>
       </Card>
 
-      {/* Tabs */}
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs className="w-full" onValueChange={(value) => setTab(value as LeaderboardTab)} value={tab}>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="global">Global</TabsTrigger>
-          <TabsTrigger value="guild">My Guild</TabsTrigger>
+          <TabsTrigger value="guild">Guild</TabsTrigger>
+          <TabsTrigger value="weekly">Weekly</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="global" className="space-y-3 mt-6">
-          {mockGlobalLeaderboard.map((entry) => (
+        <TabsContent className="space-y-3" value="global">
+          {boards.global.map((entry) => (
             <Card
-              key={entry.userId}
-              className={`p-4 ${entry.rank <= 3 ? 'border-2' : ''} ${
-                entry.rank === 1 ? 'border-yellow-400' : entry.rank === 2 ? 'border-gray-400' : entry.rank === 3 ? 'border-orange-400' : ''
+              className={`border p-4 shadow-sm ${
+                entry.isPlayer
+                  ? "border-indigo-200 bg-indigo-50/80"
+                  : "border-slate-200 bg-white/95"
               }`}
+              key={entry.userId}
             >
-              <div className="flex items-center gap-4">
-                {/* Rank */}
-                <div className="w-12 flex items-center justify-center">
-                  {getRankIcon(entry.rank)}
+              <div className="flex items-center gap-3">
+                <div className="flex w-9 items-center justify-center">
+                  {medalForRank(entry.rank)}
                 </div>
 
-                {/* Avatar */}
-                <Avatar className={entry.rank <= 3 ? 'border-2 border-current' : ''}>
-                  <AvatarFallback className={getRankBadgeColor(entry.rank) + ' text-white'}>
+                <Avatar>
+                  <AvatarFallback
+                    className={`${
+                      entry.isPlayer ? "bg-indigo-600 text-white" : "bg-slate-900 text-white"
+                    }`}
+                  >
                     {entry.avatar}
                   </AvatarFallback>
                 </Avatar>
 
-                {/* Info */}
-                <div className="flex-1">
-                  <p className="font-semibold">{entry.username}</p>
-                  <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3" />
-                      Lv {entry.level}
-                    </span>
-                    <span>{entry.tasksCompleted} quests</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-slate-950">{entry.username}</p>
+                    {entry.isPlayer && <Badge variant="secondary">You</Badge>}
                   </div>
-                  {entry.guild && (
-                    <p className="text-xs text-purple-600 mt-0.5">🛡️ {entry.guild}</p>
-                  )}
+                  <p className="text-xs text-slate-500">
+                    {entry.guild} - {entry.tasksCompleted} quests - {entry.streak} day streak
+                  </p>
                 </div>
 
-                {/* XP */}
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">XP</p>
-                  <p className="font-semibold">{entry.xp.toLocaleString()}</p>
+                  <p className="text-xs text-slate-500">XP</p>
+                  <p className="text-sm font-medium text-slate-950">{entry.xp}</p>
                 </div>
               </div>
             </Card>
           ))}
         </TabsContent>
 
-        <TabsContent value="guild" className="space-y-3 mt-6">
-          {mockGuildLeaderboard.map((entry) => {
-            const isYou = entry.userId === 'you';
-            return (
-              <Card
-                key={entry.userId}
-                className={`p-4 ${isYou ? 'border-2 border-purple-500 bg-purple-50' : ''}`}
-              >
-                <div className="flex items-center gap-4">
-                  {/* Rank */}
-                  <div className="w-12 flex items-center justify-center">
-                    {getRankIcon(entry.rank)}
-                  </div>
-
-                  {/* Avatar */}
-                  <Avatar>
-                    <AvatarFallback className={isYou ? 'bg-purple-500 text-white' : getRankBadgeColor(entry.rank) + ' text-white'}>
-                      {entry.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  {/* Info */}
-                  <div className="flex-1">
-                    <p className="font-semibold">
-                      {entry.username}
-                      {isYou && <span className="ml-2 text-xs text-purple-600">(You)</span>}
-                    </p>
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <Zap className="w-3 h-3" />
-                        Lv {isYou ? stats.level : entry.level}
-                      </span>
-                      <span>{isYou ? stats.tasksCompleted : entry.tasksCompleted} quests</span>
-                    </div>
-                  </div>
-
-                  {/* XP */}
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">XP</p>
-                    <p className="font-semibold">{(isYou ? stats.xp : entry.xp).toLocaleString()}</p>
-                  </div>
+        <TabsContent className="space-y-3" value="guild">
+          {boards.guild.map((entry) => (
+            <Card
+              className={`border p-4 shadow-sm ${
+                entry.isPlayer
+                  ? "border-emerald-200 bg-emerald-50/80"
+                  : "border-slate-200 bg-white/95"
+              }`}
+              key={entry.userId}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex w-9 items-center justify-center">
+                  {medalForRank(entry.rank)}
                 </div>
-              </Card>
-            );
-          })}
+
+                <Avatar>
+                  <AvatarFallback
+                    className={`${
+                      entry.isPlayer ? "bg-emerald-600 text-white" : "bg-slate-900 text-white"
+                    }`}
+                  >
+                    {entry.avatar}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-slate-950">{entry.username}</p>
+                    {entry.isPlayer && <Badge variant="secondary">You</Badge>}
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Level {entry.level} - {entry.tasksCompleted} quests - {entry.focusMinutes} focused min
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">XP</p>
+                  <p className="text-sm font-medium text-slate-950">{entry.xp}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </TabsContent>
+
+        <TabsContent className="space-y-3" value="weekly">
+          {boards.weekly.map((entry) => (
+            <Card
+              className={`border p-4 shadow-sm ${
+                entry.isPlayer
+                  ? "border-amber-200 bg-amber-50/80"
+                  : "border-slate-200 bg-white/95"
+              }`}
+              key={entry.userId}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex w-9 items-center justify-center">
+                  {medalForRank(entry.rank)}
+                </div>
+
+                <Avatar>
+                  <AvatarFallback
+                    className={`${
+                      entry.isPlayer ? "bg-amber-500 text-slate-950" : "bg-slate-900 text-white"
+                    }`}
+                  >
+                    {entry.avatar}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-slate-950">{entry.username}</p>
+                    {entry.isPlayer && <Badge variant="secondary">You</Badge>}
+                  </div>
+                  <p className="inline-flex items-center gap-1 text-xs text-slate-500">
+                    <Zap className="h-3.5 w-3.5" />
+                    {entry.weeklyXp} weekly XP - {entry.focusMinutes} focused min
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">Streak</p>
+                  <p className="text-sm font-medium text-slate-950">{entry.streak}d</p>
+                </div>
+              </div>
+            </Card>
+          ))}
         </TabsContent>
       </Tabs>
-
-      {/* Seasonal Info */}
-      <Card className="p-4 bg-gradient-to-r from-orange-100 to-pink-100 border-orange-200">
-        <div className="flex items-center gap-3">
-          <Trophy className="w-10 h-10 text-orange-500" />
-          <div>
-            <p className="font-semibold">Spring Season 2026</p>
-            <p className="text-sm text-gray-600">15 days remaining • Top 100 earn exclusive rewards!</p>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }

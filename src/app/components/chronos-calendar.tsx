@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, Users as UsersIcon } from 'lucide-react';
+import { addDays, addWeeks, format, startOfWeek } from 'date-fns';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
@@ -19,14 +20,22 @@ interface ChronosCalendarProps {
   tasks: CalendarTask[];
   onTaskClick?: (task: CalendarTask) => void;
   onTimeSlotClick?: (day: number, hour: number) => void;
+  baseDate?: Date;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export function ChronosCalendar({ tasks, onTaskClick, onTimeSlotClick }: ChronosCalendarProps) {
+export function ChronosCalendar({
+  tasks,
+  onTaskClick,
+  onTimeSlotClick,
+  baseDate = new Date(),
+}: ChronosCalendarProps) {
   const [currentWeek, setCurrentWeek] = useState(0);
+  const weekStart = startOfWeek(addWeeks(baseDate, currentWeek), { weekStartsOn: 1 });
+  const displayedDays = DAYS_SHORT.map((_, index) => addDays(weekStart, index));
 
   const getTasksForSlot = (day: number, hour: number) => {
     return tasks.filter(
@@ -65,7 +74,7 @@ export function ChronosCalendar({ tasks, onTaskClick, onTimeSlotClick }: Chronos
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <span className="text-sm text-white font-medium px-2">
-              Week {currentWeek === 0 ? 'Current' : currentWeek > 0 ? `+${currentWeek}` : currentWeek}
+              {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d')}
             </span>
             <Button
               variant="ghost"
@@ -89,7 +98,7 @@ export function ChronosCalendar({ tasks, onTaskClick, onTimeSlotClick }: Chronos
               <div key={day} className="p-2 text-center">
                 <div className="text-xs font-semibold text-gray-600">{day}</div>
                 <div className="text-xs text-gray-500">
-                  {new Date(2026, 2, 17 + index).getDate()}
+                  {format(displayedDays[index], 'd')}
                 </div>
               </div>
             ))}

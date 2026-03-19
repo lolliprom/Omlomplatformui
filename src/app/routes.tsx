@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, createHashRouter } from "react-router";
 import Dashboard from "./pages/dashboard";
 import Tasks from "./pages/tasks";
 import Social from "./pages/social";
@@ -7,7 +7,7 @@ import Profile from "./pages/profile";
 import Calendar from "./pages/calendar";
 import Root from "./pages/root";
 
-export const router = createBrowserRouter([
+const routeConfig = [
   {
     path: "/",
     Component: Root,
@@ -20,4 +20,11 @@ export const router = createBrowserRouter([
       { path: "calendar", Component: Calendar },
     ],
   },
-]);
+];
+
+const shouldUseHashRouter =
+  typeof window !== "undefined" && window.location.protocol === "file:";
+
+export const router = shouldUseHashRouter
+  ? createHashRouter(routeConfig)
+  : createBrowserRouter(routeConfig);

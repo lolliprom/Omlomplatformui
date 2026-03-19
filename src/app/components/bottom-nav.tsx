@@ -1,32 +1,39 @@
-import { Link, useLocation } from 'react-router';
-import { Home, ListTodo, Users, Trophy, User, Calendar } from 'lucide-react';
+import { Link, useLocation } from "react-router";
+import { Calendar, Home, ListTodo, Trophy, User, Users } from "lucide-react";
 
 export function BottomNav() {
   const location = useLocation();
 
   const navItems = [
-    { path: '/', icon: Home, label: 'Home' },
-    { path: '/tasks', icon: ListTodo, label: 'Tasks' },
-    { path: '/social', icon: Users, label: 'Social' },
-    { path: '/leaderboard', icon: Trophy, label: 'Ranks' },
-    { path: '/profile', icon: User, label: 'Profile' },
+    { path: "/", icon: Home, label: "Home" },
+    { path: "/tasks", icon: ListTodo, label: "Tasks" },
+    { path: "/calendar", icon: Calendar, label: "Plan" },
+    { path: "/social", icon: Users, label: "Feed" },
+    { path: "/leaderboard", icon: Trophy, label: "Rank" },
+    { path: "/profile", icon: User, label: "Me" },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-inset-bottom z-50">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/80 bg-white/85 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-2">
         {navItems.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path;
           return (
             <Link
               key={path}
               to={path}
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                isActive ? 'text-purple-600' : 'text-gray-500'
+              className={`flex h-full flex-1 flex-col items-center justify-center gap-1 rounded-2xl transition-colors ${
+                isActive ? "text-indigo-600" : "text-slate-500"
               }`}
             >
-              <Icon className={`w-6 h-6 ${isActive ? 'stroke-2' : 'stroke-1.5'}`} />
-              <span className="text-xs mt-1">{label}</span>
+              <div
+                className={`rounded-full px-2 py-1 transition-colors ${
+                  isActive ? "bg-indigo-50" : "bg-transparent"
+                }`}
+              >
+                <Icon className={`h-5 w-5 ${isActive ? "stroke-2" : "stroke-1.5"}`} />
+              </div>
+              <span className="text-[10px] uppercase tracking-wide">{label}</span>
             </Link>
           );
         })}

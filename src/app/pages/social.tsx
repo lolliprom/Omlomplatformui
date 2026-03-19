@@ -1,171 +1,203 @@
-import { Card } from '../components/ui/card';
-import { Avatar, AvatarFallback } from '../components/ui/avatar';
-import { Button } from '../components/ui/button';
-import { Heart, MessageCircle, Share2, Trophy, Sparkles } from 'lucide-react';
-import { SocialPost } from '../types';
+import { useState } from "react";
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  Sparkles,
+  Trophy,
+  Users,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
-// Mock social feed data
-const mockPosts: SocialPost[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    username: 'Sarah_Chen',
-    avatar: 'SC',
-    content: 'Just crushed my Chemistry exam prep! 🧪',
-    taskCompleted: 'Complete Chemistry Revision',
-    rewardEarned: 850,
-    likes: 24,
-    comments: 5,
-    timestamp: new Date(Date.now() - 1000 * 60 * 15),
-  },
-  {
-    id: '2',
-    userId: 'user2',
-    username: 'Mike_Johnson',
-    avatar: 'MJ',
-    content: 'Team project done early! Our guild is on fire 🔥',
-    taskCompleted: 'Group Presentation Prep',
-    rewardEarned: 1200,
-    likes: 42,
-    comments: 8,
-    timestamp: new Date(Date.now() - 1000 * 60 * 45),
-  },
-  {
-    id: '3',
-    userId: 'user3',
-    username: 'Emma_Lee',
-    avatar: 'EL',
-    content: 'Level 15 reached! My Omlom is evolving ✨',
-    rewardEarned: 0,
-    likes: 67,
-    comments: 12,
-    timestamp: new Date(Date.now() - 1000 * 60 * 120),
-  },
-  {
-    id: '4',
-    userId: 'user4',
-    username: 'Alex_Kim',
-    avatar: 'AK',
-    content: 'Finally finished that massive essay!',
-    taskCompleted: 'Write History Essay',
-    rewardEarned: 950,
-    likes: 31,
-    comments: 6,
-    timestamp: new Date(Date.now() - 1000 * 60 * 180),
-  },
-  {
-    id: '5',
-    userId: 'user5',
-    username: 'Olivia_Martinez',
-    avatar: 'OM',
-    content: '10-day streak! Productivity mode activated 💪',
-    rewardEarned: 0,
-    likes: 89,
-    comments: 15,
-    timestamp: new Date(Date.now() - 1000 * 60 * 300),
-  },
-];
-
-function formatTimeAgo(date: Date): string {
-  const minutes = Math.floor((Date.now() - date.getTime()) / 1000 / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
+import { GuildActivityFeed } from "../components/guild-activity-feed";
+import { Avatar, AvatarFallback } from "../components/ui/avatar";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { useGameStore } from "../store/game-store";
 
 export default function Social() {
+  const { profile, socialPosts, guildActivities, stats, togglePostLike } = useGameStore();
+  const [tab, setTab] = useState("feed");
+
+  const guildGoalCurrent = Math.min(1280, stats.weeklyFocusMinutes + 560);
+  const guildGoal = {
+    current: guildGoalCurrent,
+    target: 1200,
+    description: "Bank 1,200 focused minutes before the pitch rehearsal window closes.",
+  };
+
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div className="pt-4">
-        <h1 className="text-3xl mb-1">Community Feed</h1>
-        <p className="text-gray-600">See what students are achieving</p>
-      </div>
+    <div className="px-4 pb-24 pt-5 space-y-5">
+      <section className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-slate-500">Community layer</p>
+          <h1 className="text-3xl text-slate-950">Guild Feed</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Track public wins, guild momentum, and the social proof around the sprint.
+          </p>
+        </div>
+        <Badge className="rounded-full px-3 py-1" variant="secondary">
+          {profile.guild}
+        </Badge>
+      </section>
 
-      {/* Guild Info Banner */}
-      <Card className="p-4 bg-gradient-to-r from-purple-100 to-blue-100 border-purple-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">Your Guild</p>
-            <p className="font-semibold text-lg">Study Warriors</p>
-            <p className="text-sm text-purple-600">Rank #42 • 247 members</p>
+      <Card className="border-0 bg-[linear-gradient(135deg,#1e293b_0%,#0f172a_100%)] p-5 text-white shadow-xl">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-300">
+              Live guild challenge
+            </p>
+            <h2 className="text-2xl">Pitch Week raid</h2>
+            <p className="max-w-sm text-sm text-slate-300">
+              The guild is pooling focused minutes and shipped deliverables to hold top rank this week.
+            </p>
           </div>
-          <Trophy className="w-12 h-12 text-purple-500" />
+          <Users className="h-9 w-9 text-cyan-300" />
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Badge className="border-white/20 bg-white/10 text-white" variant="outline">
+            {guildGoal.current} / {guildGoal.target} min
+          </Badge>
+          <Badge className="border-white/20 bg-white/10 text-white" variant="outline">
+            {socialPosts.length} social updates
+          </Badge>
         </div>
       </Card>
 
-      {/* Active Challenge */}
-      <Card className="p-4 bg-gradient-to-r from-orange-100 to-pink-100 border-orange-200">
-        <div className="flex items-center gap-3">
-          <Sparkles className="w-8 h-8 text-orange-500" />
-          <div className="flex-1">
-            <p className="font-semibold">Monthly Boss Raid</p>
-            <p className="text-sm text-gray-600">Exam Season Challenge</p>
-          </div>
-          <Button size="sm" variant="outline">Join</Button>
-        </div>
-      </Card>
+      <Tabs className="w-full" onValueChange={setTab} value={tab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="feed">Feed</TabsTrigger>
+          <TabsTrigger value="guild">Guild</TabsTrigger>
+        </TabsList>
 
-      {/* Feed */}
-      <div className="space-y-4">
-        {mockPosts.map(post => (
-          <Card key={post.id} className="p-4">
-            {/* Post Header */}
-            <div className="flex items-center gap-3 mb-3">
-              <Avatar>
-                <AvatarFallback className="bg-gradient-to-br from-purple-400 to-blue-400 text-white">
-                  {post.avatar}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <p className="font-semibold">{post.username}</p>
-                <p className="text-xs text-gray-500">{formatTimeAgo(post.timestamp)}</p>
+        <TabsContent className="space-y-4" value="feed">
+          {socialPosts.map((post) => (
+            <Card className="border-slate-200 bg-white/95 p-4 shadow-sm" key={post.id}>
+              <div className="flex items-start gap-3">
+                <Avatar>
+                  <AvatarFallback className="bg-slate-900 text-white">
+                    {post.avatar}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-slate-950">{post.username}</p>
+                        {post.userId === profile.userId && (
+                          <Badge variant="secondary">You</Badge>
+                        )}
+                        {post.highlight && <Badge variant="outline">{post.highlight}</Badge>}
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        {formatDistanceToNow(post.timestamp, { addSuffix: true })}
+                      </p>
+                    </div>
+
+                    <Badge variant="outline">{post.guild ?? "Community"}</Badge>
+                  </div>
+
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{post.content}</p>
+
+                  {post.taskCompleted && (
+                    <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+                      <div className="flex items-center gap-2 text-sm text-emerald-700">
+                        <Trophy className="h-4 w-4" />
+                        Quest cleared
+                      </div>
+                      <p className="mt-1 text-sm text-slate-700">{post.taskCompleted}</p>
+                      {post.rewardEarned && (
+                        <p className="mt-1 text-xs text-emerald-700">
+                          {post.rewardEarned} XP earned
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex items-center gap-4 border-t border-slate-100 pt-3 text-sm text-slate-500">
+                    <button
+                      className={`inline-flex items-center gap-2 transition-colors ${
+                        post.likedByViewer ? "text-rose-600" : "hover:text-rose-600"
+                      }`}
+                      onClick={() => togglePostLike(post.id)}
+                      type="button"
+                    >
+                      <Heart className="h-4 w-4" />
+                      {post.likes}
+                    </button>
+                    <button className="inline-flex items-center gap-2 hover:text-blue-600" type="button">
+                      <MessageCircle className="h-4 w-4" />
+                      {post.comments}
+                    </button>
+                    <button
+                      className="ml-auto inline-flex items-center gap-2 hover:text-emerald-600"
+                      onClick={() => toast.success("Use this card as the social screenshot for the demo.")}
+                      type="button"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </button>
+                  </div>
+                </div>
               </div>
+            </Card>
+          ))}
+        </TabsContent>
+
+        <TabsContent className="space-y-4" value="guild">
+          <GuildActivityFeed
+            activities={guildActivities.map((activity) => ({
+              id: activity.id,
+              name: activity.name,
+              activity: activity.activity,
+              timestamp: formatDistanceToNow(activity.timestamp, { addSuffix: true }),
+              type: activity.type,
+            }))}
+            guildGoal={guildGoal}
+            guildName={profile.guild}
+          />
+
+          <Card className="border-slate-200 bg-white/95 p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-slate-500">Your signal</p>
+                <h2 className="text-xl text-slate-950">Public momentum</h2>
+              </div>
+              <Sparkles className="h-5 w-5 text-indigo-500" />
             </div>
 
-            {/* Post Content */}
-            <p className="mb-3">{post.content}</p>
-
-            {/* Quest Complete Card */}
-            {post.taskCompleted && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 mb-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Trophy className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-semibold text-green-700">Quest Completed!</span>
-                </div>
-                <p className="text-sm text-gray-700">{post.taskCompleted}</p>
-                <p className="text-xs text-green-600 mt-1">
-                  +{post.rewardEarned} XP earned
+            <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <p className="text-slate-500">Weekly XP</p>
+                <p className="mt-1 text-lg text-slate-950">{stats.weeklyXp}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <p className="text-slate-500">Focus minutes</p>
+                <p className="mt-1 text-lg text-slate-950">{stats.weeklyFocusMinutes}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <p className="text-slate-500">Posts</p>
+                <p className="mt-1 text-lg text-slate-950">
+                  {socialPosts.filter((post) => post.userId === profile.userId).length}
                 </p>
               </div>
-            )}
-
-            {/* Post Actions */}
-            <div className="flex items-center gap-4 pt-2 border-t">
-              <button className="flex items-center gap-2 text-gray-600 hover:text-red-500 transition-colors">
-                <Heart className="w-5 h-5" />
-                <span className="text-sm">{post.likes}</span>
-              </button>
-              <button className="flex items-center gap-2 text-gray-600 hover:text-blue-500 transition-colors">
-                <MessageCircle className="w-5 h-5" />
-                <span className="text-sm">{post.comments}</span>
-              </button>
-              <button className="flex items-center gap-2 text-gray-600 hover:text-green-500 transition-colors ml-auto">
-                <Share2 className="w-5 h-5" />
-              </button>
             </div>
-          </Card>
-        ))}
-      </div>
 
-      {/* Load More */}
-      <div className="text-center py-4">
-        <Button variant="outline" size="lg">
-          Load More Posts
-        </Button>
-      </div>
+            <Button
+              className="mt-4 w-full"
+              onClick={() => toast.success("Challenge joined. Use the guild tab during the demo walkthrough.")}
+              variant="outline"
+            >
+              Join challenge highlight
+            </Button>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

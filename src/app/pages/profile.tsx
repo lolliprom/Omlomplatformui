@@ -1,168 +1,333 @@
-import { useGameStore } from '../store/game-store';
-import { OmlomCharacter } from '../components/omlom-character';
-import { Card } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Progress } from '../components/ui/progress';
-import { Badge } from '../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Trophy, Sparkles, Flame, Calendar, Award, Share2, Download } from 'lucide-react';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  XAxis,
+} from "recharts";
+import {
+  Award,
+  Download,
+  Flame,
+  RefreshCcw,
+  Share2,
+  Sparkles,
+  Trophy,
+  Zap,
+} from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "sonner";
+
+import { buildMomentum } from "../demo-data";
+import { OmlomCharacter } from "../components/omlom-character";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Progress } from "../components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "../components/ui/chart";
+import { useGameStore } from "../store/game-store";
+
+const itemMeta: Record<string, { icon: string; description: string }> = {
+  "Moonstone Charm": {
+    icon: "MC",
+    description: "Awarded for shipping a high-stakes quest.",
+  },
+  "Focus Tonic": {
+    icon: "FT",
+    description: "Boost from a deep work block.",
+  },
+  "Aura Ticket": {
+    icon: "AT",
+    description: "A lightweight reward for steady execution.",
+  },
+};
+
+const chartConfig = {
+  focusMinutes: {
+    label: "Focus minutes",
+    color: "#0f766e",
+  },
+} as const;
 
 export default function Profile() {
-  const { stats, omlom, inventory, tasks } = useGameStore();
+  const {
+    profile,
+    stats,
+    omlom,
+    inventory,
+    tasks,
+    loadDemoData,
+  } = useGameStore();
 
+  const completedTasks = tasks
+    .filter((task) => task.completed)
+    .sort(
+      (left, right) =>
+        (right.completedAt?.getTime() ?? 0) - (left.completedAt?.getTime() ?? 0),
+    );
+  const momentum = buildMomentum(tasks);
+  const xpProgress = Math.min(100, (stats.xp / stats.nextLevelXp) * 100);
   const achievements = [
-    { id: 1, name: 'First Steps', description: 'Complete your first quest', unlocked: stats.tasksCompleted >= 1, icon: '🎯' },
-    { id: 2, name: 'On Fire', description: 'Reach a 5-day streak', unlocked: stats.currentStreak >= 5, icon: '🔥' },
-    { id: 3, name: 'Level Up!', description: 'Reach level 5', unlocked: stats.level >= 5, icon: '⬆️' },
-    { id: 4, name: 'Task Master', description: 'Complete 50 quests', unlocked: stats.tasksCompleted >= 50, icon: '👑' },
-    { id: 5, name: 'Aura Collector', description: 'Collect 100 aura shards', unlocked: stats.auraShards >= 100, icon: '✨' },
-    { id: 6, name: 'Gold Rush', description: 'Accumulate 5000 gold', unlocked: stats.gold >= 5000, icon: '💰' },
+    {
+      title: "First clear",
+      description: "Finish a quest and convert it into visible progress.",
+      unlocked: stats.tasksCompleted >= 1,
+    },
+    {
+      title: "Streak builder",
+      description: "Hit a 3 day focus streak.",
+      unlocked: stats.currentStreak >= 3,
+    },
+    {
+      title: "Guild ready",
+      description: "Reach level 3 before pitch week.",
+      unlocked: stats.level >= 3,
+    },
+    {
+      title: "Collector",
+      description: "Add three items to your inventory.",
+      unlocked: inventory.length >= 3,
+    },
+    {
+      title: "Closer",
+      description: "Complete 5 quests in the product cycle.",
+      unlocked: stats.tasksCompleted >= 5,
+    },
   ];
 
-  const unlockedCount = achievements.filter(a => a.unlocked).length;
-  const xpProgress = (stats.xp / stats.nextLevelXp) * 100;
-
   return (
-    <div className="p-4 space-y-6 pb-24">
-      {/* Header */}
-      <div className="pt-4 text-center">
-        <h1 className="text-3xl mb-1">Profile</h1>
-        <p className="text-gray-600">Your Omlom Journey</p>
-      </div>
+    <div className="px-4 pb-24 pt-5 space-y-5">
+      <section className="text-center">
+        <p className="text-sm text-slate-500">Player profile</p>
+        <h1 className="text-3xl text-slate-950">Demo Identity</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Live player state, achievements, inventory, and reset controls for the demo run.
+        </p>
+      </section>
 
-      {/* Profile Card */}
-      <Card className="p-6 bg-gradient-to-br from-purple-100 to-blue-100 border-2 border-purple-200">
-        <div className="flex flex-col items-center">
-          {/* Mirror Frame */}
-          <div className="relative mb-4">
-            <div className="absolute -inset-4 border-4 border-purple-300 rounded-full opacity-50" />
-            <div className="relative">
-              <OmlomCharacter state={omlom} size="large" />
+      <Card className="border-0 bg-[linear-gradient(135deg,#f8fafc_0%,#dbeafe_50%,#e0f2fe_100%)] p-5 shadow-xl">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="rounded-full bg-white/70 p-3 shadow-sm">
+            <OmlomCharacter size="large" state={omlom} />
+          </div>
+
+          <div>
+            <h2 className="text-2xl text-slate-950">{profile.username}</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              {profile.role} - {profile.guild}
+            </p>
+            <p className="mt-2 max-w-xs text-sm text-slate-500">{profile.motto}</p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-2">
+            <Badge variant="secondary">Level {stats.level}</Badge>
+            <Badge variant="outline">Joined {format(profile.joinedAt, "MMM d")}</Badge>
+          </div>
+
+          <div className="w-full max-w-xs space-y-2">
+            <div className="flex items-center justify-between text-sm text-slate-600">
+              <span>Progress to next level</span>
+              <span>
+                {stats.xp} / {stats.nextLevelXp}
+              </span>
             </div>
+            <Progress className="h-2.5" value={xpProgress} />
           </div>
 
-          {/* Player Info */}
-          <h2 className="text-2xl mb-1">Student Hero</h2>
-          <div className="flex items-center gap-2 mb-4">
-            <Badge variant="secondary" className="text-lg px-3 py-1">
-              Level {stats.level}
-            </Badge>
-            <Badge variant="outline" className="px-3 py-1">
-              🛡️ Study Warriors
-            </Badge>
-          </div>
-
-          {/* XP Progress */}
-          <div className="w-full max-w-xs">
-            <div className="flex items-center justify-between text-sm mb-1">
-              <span className="text-gray-600">XP Progress</span>
-              <span className="font-semibold">{stats.xp} / {stats.nextLevelXp}</span>
-            </div>
-            <Progress value={xpProgress} className="h-3" />
-          </div>
-
-          {/* Share Button */}
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline" size="sm">
-              <Share2 className="w-4 h-4 mr-2" />
-              Share to IG
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button
+              onClick={() => toast.success("Use this profile card as the closing screenshot in the demo.")}
+              variant="outline"
+            >
+              <Share2 className="h-4 w-4" />
+              Share snapshot
             </Button>
-            <Button variant="outline" size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              Save
+            <Button
+              onClick={() => {
+                loadDemoData();
+                toast.success("Demo data restored.");
+              }}
+              variant="outline"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Reload demo
+            </Button>
+            <Button
+              onClick={() => toast.success("Export is mocked for the live demo.")}
+              variant="outline"
+            >
+              <Download className="h-4 w-4" />
+              Export
             </Button>
           </div>
         </div>
       </Card>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="p-4 text-center">
-          <Trophy className="w-8 h-8 mx-auto mb-2 text-orange-500" />
-          <p className="text-2xl mb-1">{stats.tasksCompleted}</p>
-          <p className="text-sm text-gray-600">Quests Done</p>
+      <section className="grid grid-cols-2 gap-3">
+        <Card className="gap-2 border-slate-200 bg-white/95 p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Trophy className="h-4 w-4 text-amber-500" />
+            Quests done
+          </div>
+          <p className="text-2xl text-slate-950">{stats.tasksCompleted}</p>
         </Card>
 
-        <Card className="p-4 text-center">
-          <Flame className="w-8 h-8 mx-auto mb-2 text-red-500" />
-          <p className="text-2xl mb-1">{stats.currentStreak}</p>
-          <p className="text-sm text-gray-600">Day Streak</p>
+        <Card className="gap-2 border-slate-200 bg-white/95 p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Flame className="h-4 w-4 text-rose-500" />
+            Streak
+          </div>
+          <p className="text-2xl text-slate-950">{stats.currentStreak} days</p>
         </Card>
 
-        <Card className="p-4 text-center">
-          <Sparkles className="w-8 h-8 mx-auto mb-2 text-purple-500" />
-          <p className="text-2xl mb-1">{stats.auraShards}</p>
-          <p className="text-sm text-gray-600">Aura Shards</p>
+        <Card className="gap-2 border-slate-200 bg-white/95 p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Sparkles className="h-4 w-4 text-indigo-500" />
+            Aura shards
+          </div>
+          <p className="text-2xl text-slate-950">{stats.auraShards}</p>
         </Card>
 
-        <Card className="p-4 text-center">
-          <Calendar className="w-8 h-8 mx-auto mb-2 text-blue-500" />
-          <p className="text-2xl mb-1">{Math.floor(stats.totalValue)}</p>
-          <p className="text-sm text-gray-600">Total Value</p>
+        <Card className="gap-2 border-slate-200 bg-white/95 p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Zap className="h-4 w-4 text-sky-500" />
+            Focus minutes
+          </div>
+          <p className="text-2xl text-slate-950">{stats.focusMinutes}</p>
         </Card>
-      </div>
+      </section>
 
-      {/* Tabs */}
-      <Tabs defaultValue="achievements" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs className="w-full" defaultValue="overview">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="achievements" className="space-y-3 mt-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg">Unlocked Achievements</h3>
-            <Badge>{unlockedCount} / {achievements.length}</Badge>
-          </div>
+        <TabsContent className="space-y-4" value="overview">
+          <Card className="border-slate-200 bg-white/95 p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-slate-500">Momentum snapshot</p>
+                <h2 className="text-xl text-slate-950">Focus minutes</h2>
+              </div>
+              <Badge variant="secondary">{stats.weeklyFocusMinutes} this week</Badge>
+            </div>
 
-          <div className="grid gap-3">
-            {achievements.map((achievement) => (
-              <Card
-                key={achievement.id}
-                className={`p-4 ${
-                  achievement.unlocked
-                    ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200'
-                    : 'bg-gray-50 opacity-60'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="text-3xl">{achievement.icon}</div>
-                  <div className="flex-1">
-                    <p className="font-semibold">{achievement.name}</p>
-                    <p className="text-sm text-gray-600">{achievement.description}</p>
+            <ChartContainer className="mt-4 h-44 w-full" config={chartConfig}>
+              <AreaChart data={momentum}>
+                <defs>
+                  <linearGradient id="focusFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-focusMinutes)" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="var(--color-focusMinutes)" stopOpacity={0.04} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis axisLine={false} dataKey="label" tickLine={false} />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent labelKey="focusMinutes" />}
+                />
+                <Area
+                  dataKey="focusMinutes"
+                  fill="url(#focusFill)"
+                  fillOpacity={1}
+                  stroke="var(--color-focusMinutes)"
+                  strokeWidth={2.5}
+                  type="monotone"
+                />
+              </AreaChart>
+            </ChartContainer>
+          </Card>
+
+          <Card className="border-slate-200 bg-white/95 p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-slate-500">Recent wins</p>
+                <h2 className="text-xl text-slate-950">Last completions</h2>
+              </div>
+              <Badge variant="outline">{completedTasks.length} total</Badge>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {completedTasks.slice(0, 3).map((task) => (
+                <div
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  key={task.id}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-slate-950">{task.title}</p>
+                      <p className="text-xs text-slate-500">
+                        Completed {task.completedAt ? format(task.completedAt, "EEE, MMM d - h:mm a") : "-"}
+                      </p>
+                    </div>
+                    <Badge variant="secondary">{task.value} pts</Badge>
                   </div>
-                  {achievement.unlocked && (
-                    <Award className="w-6 h-6 text-yellow-600" />
-                  )}
                 </div>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="inventory" className="space-y-3 mt-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg">Your Items</h3>
-            <Badge>{inventory.length} items</Badge>
-          </div>
-
-          {inventory.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3">
-              {inventory.map((item, index) => (
-                <Card key={index} className="p-4 text-center">
-                  <div className="text-4xl mb-2">
-                    {item === 'Rare Item' ? '💎' : item === 'Uncommon Item' ? '🎁' : '📦'}
-                  </div>
-                  <p className="text-sm font-semibold">{item}</p>
-                </Card>
               ))}
             </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent className="space-y-3" value="achievements">
+          {achievements.map((achievement) => (
+            <Card
+              className={`border p-4 shadow-sm ${
+                achievement.unlocked
+                  ? "border-amber-200 bg-amber-50/80"
+                  : "border-slate-200 bg-slate-50/80"
+              }`}
+              key={achievement.title}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`rounded-full p-2 ${
+                    achievement.unlocked ? "bg-amber-200 text-amber-700" : "bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  <Award className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-slate-950">{achievement.title}</p>
+                    {achievement.unlocked && <Badge variant="secondary">Unlocked</Badge>}
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">{achievement.description}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </TabsContent>
+
+        <TabsContent className="space-y-3" value="inventory">
+          {inventory.length > 0 ? (
+            inventory.map((item, index) => (
+              <Card className="border-slate-200 bg-white/95 p-4 shadow-sm" key={`${item}-${index}`}>
+                <div className="flex items-start gap-3">
+                  <div className="rounded-2xl bg-slate-900 px-3 py-2 text-sm font-medium text-white">
+                    {itemMeta[item]?.icon ?? "IT"}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-950">{item}</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {itemMeta[item]?.description ?? "Reward added during the demo journey."}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))
           ) : (
-            <div className="text-center py-12">
-              <Sparkles className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-600 mb-2">No items yet</p>
-              <p className="text-sm text-gray-500">Complete high-value quests to earn rare items!</p>
-            </div>
+            <Card className="border-dashed border-slate-300 bg-white/75 p-8 text-center shadow-sm">
+              <p className="text-base text-slate-950">No items yet.</p>
+              <p className="mt-2 text-sm text-slate-500">
+                Complete higher-value quests to drop rare inventory items.
+              </p>
+            </Card>
           )}
         </TabsContent>
       </Tabs>
