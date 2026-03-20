@@ -8,7 +8,7 @@ import { Slider } from '../components/ui/slider';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { CheckCircle2, Circle, Trash2, Plus, Sparkles } from 'lucide-react';
+import { CheckCircle2, Circle, Trash2, Plus, Sparkles, Clock, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import { Task } from '../types';
@@ -77,6 +77,26 @@ export default function Tasks() {
     if (value >= 60) return { label: 'Hard', color: 'text-orange-600' };
     if (value >= 40) return { label: 'Medium', color: 'text-blue-600' };
     return { label: 'Easy', color: 'text-green-600' };
+  };
+
+  const getDeadlineInfo = (deadline: Date) => {
+    const now = new Date();
+    const diffTime = deadline.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+    
+    if (diffDays < 0) {
+      return { text: 'Overdue!', color: 'bg-red-600 text-white', icon: AlertTriangle, urgent: true };
+    } else if (diffDays === 0) {
+      return { text: 'Due Today!', color: 'bg-red-500 text-white', icon: AlertTriangle, urgent: true };
+    } else if (diffDays === 1) {
+      return { text: 'Due Tomorrow', color: 'bg-orange-500 text-white', icon: Clock, urgent: true };
+    } else if (diffDays === 2) {
+      return { text: 'Due in 2 days', color: 'bg-yellow-500 text-white', icon: Clock, urgent: false };
+    } else if (diffDays <= 7) {
+      return { text: `Due in ${diffDays} days`, color: 'bg-blue-500 text-white', icon: Clock, urgent: false };
+    }
+    return { text: `Due ${deadline.toLocaleDateString()}`, color: 'bg-gray-500 text-white', icon: Clock, urgent: false };
   };
 
   return (
@@ -177,9 +197,29 @@ export default function Tasks() {
         <div className="space-y-3">
           <h2 className="text-lg">Active Quests</h2>
           <div className="space-y-2">
-            {incompleteTasks.map(task => (
-              <Card key={task.id} className="p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start gap-3">
+            {incompleteTasks.map(task => {
+              const deadlineInfo = task.deadline ? getDeadlineInfo(task.deadline) : null;
+              const DeadlineIcon = deadlineInfo?.icon;
+              const isOnFire = deadlineInfo?.urgent;
+              
+              return (
+              <Card key={task.id} className={`p-4 hover:shadow-md transition-shadow relative overflow-hidden ${
+                isOnFire ? 'border-2 border-orange-500 shadow-xl shadow-orange-200' : ''
+              }`}>
+                {/* Fire effect background */}
+                {isOnFire && (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-t from-orange-100 via-red-50 to-transparent opacity-40 animate-pulse"></div>
+                    <div className="absolute top-0 right-0 text-6xl opacity-20 animate-bounce">
+                      🔥
+                    </div>
+                    <div className="absolute bottom-0 left-0 text-4xl opacity-20 animate-pulse" style={{ animationDelay: '0.5s' }}>
+                      🔥
+                    </div>
+                  </>
+                )}
+                
+                <div className="flex items-start gap-3 relative z-10">
                   <button
                     onClick={() => handleCompleteTask(task.id)}
                     className="mt-0.5 text-gray-400 hover:text-green-500 transition-colors"
@@ -189,7 +229,21 @@ export default function Tasks() {
                   
                   <div className="flex-1">
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <h3 className="font-medium">{task.title}</h3>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {isOnFire && <span className="text-xl animate-pulse">🔥</span>}
+                          <h3 className="font-medium">{task.title}</h3>
+                          {isOnFire && <span className="text-xl animate-pulse" style={{ animationDelay: '0.5s' }}>🔥</span>}
+                          {deadlineInfo && (
+                            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${deadlineInfo.color} ${
+                              isOnFire ? 'animate-pulse shadow-lg' : ''
+                            }`}>
+                              {DeadlineIcon && <DeadlineIcon className="w-3 h-3" />}
+                              <span>{deadlineInfo.text}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <span className={`text-xs px-2 py-1 rounded ${getCategoryColor(task.category)}`}>
                         {task.category}
                       </span>
@@ -200,11 +254,19 @@ export default function Tasks() {
                     )}
                     
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 text-sm">
-                        <span className={getValueLabel(task.value).color}>
-                          ⚡ {task.value} pts
-                        </span>
-                        <span className="text-gray-500">
+                      <div className="flex items-center gap-3">
+                        <div className={`px-3 py-1.5 rounded-lg font-bold ${
+                          task.value >= 80 
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
+                            : task.value >= 60 
+                            ? 'bg-gradient-to-r from-orange-400 to-red-400 text-white shadow-md' 
+                            : task.value >= 40 
+                            ? 'bg-gradient-to-r from-blue-400 to-cyan-400 text-white shadow-md'
+                            : 'bg-gradient-to-r from-green-400 to-emerald-400 text-white shadow-md'
+                        }`}>
+                          <span className="text-sm">⚡</span> {task.value} <span className="text-xs">PTS</span>
+                        </div>
+                        <span className="text-sm text-gray-500">
                           +{task.value * 10} XP
                         </span>
                       </div>
@@ -219,7 +281,7 @@ export default function Tasks() {
                   </div>
                 </div>
               </Card>
-            ))}
+            )})}
           </div>
         </div>
       )}
@@ -236,7 +298,14 @@ export default function Tasks() {
                   
                   <div className="flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-medium line-through text-gray-600">{task.title}</h3>
+                      <div className="flex-1">
+                        <h3 className="font-medium line-through text-gray-600">{task.title}</h3>
+                        <div className="mt-1">
+                          <span className="px-2 py-0.5 rounded bg-gray-200 text-gray-600 text-xs">
+                            ⚡ {task.value} PTS
+                          </span>
+                        </div>
+                      </div>
                       <button
                         onClick={() => deleteTask(task.id)}
                         className="text-gray-400 hover:text-red-500 transition-colors"

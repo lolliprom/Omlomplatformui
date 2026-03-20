@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { Home, ListTodo, Users, Trophy, User, Calendar } from 'lucide-react';
+import { Home, ListTodo, Users, Trophy, User, Calendar, Shirt } from 'lucide-react';
 
 export function BottomNav() {
   const location = useLocation();
@@ -7,7 +7,7 @@ export function BottomNav() {
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
     { path: '/tasks', icon: ListTodo, label: 'Tasks' },
-    { path: '/social', icon: Users, label: 'Social' },
+    { path: '/inventory', icon: Shirt, label: 'Wardrobe' },
     { path: '/leaderboard', icon: Trophy, label: 'Ranks' },
     { path: '/profile', icon: User, label: 'Profile' },
   ];

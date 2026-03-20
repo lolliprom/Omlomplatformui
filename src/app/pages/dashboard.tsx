@@ -7,7 +7,7 @@ import { Sparkles, Coins, Zap, Trophy } from 'lucide-react';
 import { Link } from 'react-router';
 
 export default function Dashboard() {
-  const { stats, omlom, tasks } = useGameStore();
+  const { tasks, stats, omlom, accessories } = useGameStore();
   
   const incompleteTasks = tasks.filter(t => !t.completed);
   const recentlyCompleted = tasks
@@ -28,7 +28,7 @@ export default function Dashboard() {
       {/* Omlom Character Card */}
       <Card className="p-6 bg-gradient-to-br from-purple-100 to-blue-100 border-2 border-purple-200">
         <div className="flex flex-col items-center">
-          <OmlomCharacter state={omlom} size="large" />
+          <OmlomCharacter state={omlom} size="large" accessories={accessories} />
           <div className="mt-4 text-center">
             <p className="text-lg mb-1">{omlom.mood}</p>
             <p className="text-sm text-gray-600">

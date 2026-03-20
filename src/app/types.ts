@@ -7,6 +7,7 @@ export interface Task {
   createdAt: Date;
   completedAt?: Date;
   category: 'homework' | 'revision' | 'assignment' | 'project' | 'other';
+  deadline?: Date;
 }
 
 export interface Reward {
@@ -32,6 +33,17 @@ export interface OmlomState {
   workloadLevel: number; // 0-100
   mood: string;
   currentAura: string;
+}
+
+export interface Accessory {
+  id: string;
+  name: string;
+  type: 'hat' | 'glasses' | 'scarf' | 'crown' | 'wings' | 'pet';
+  emoji: string;
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  cost: number; // in gold
+  unlocked: boolean;
+  equipped: boolean;
 }
 
 export interface SocialPost {

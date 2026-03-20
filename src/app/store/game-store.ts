@@ -1,18 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Task, UserStats, OmlomState, Reward } from '../types';
+import { Task, UserStats, OmlomState, Reward, Accessory } from '../types';
 
 interface GameStore {
   tasks: Task[];
   stats: UserStats;
   omlom: OmlomState;
   inventory: string[];
+  accessories: Accessory[];
   
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'completed'>) => void;
   completeTask: (taskId: string) => Reward;
   deleteTask: (taskId: string) => void;
   updateOmlomState: () => void;
   addReward: (reward: Reward) => void;
+  unlockAccessory: (accessoryId: string) => void;
+  toggleAccessory: (accessoryId: string) => void;
 }
 
 const calculateReward = (taskValue: number): Reward => {
@@ -64,7 +67,7 @@ export const useGameStore = create<GameStore>()(
         level: 1,
         xp: 0,
         nextLevelXp: 1000,
-        gold: 0,
+        gold: 500,
         auraShards: 0,
         tasksCompleted: 0,
         currentStreak: 0,
@@ -77,6 +80,7 @@ export const useGameStore = create<GameStore>()(
         currentAura: 'blue',
       },
       inventory: [],
+      accessories: [],
 
       addTask: (taskData) => {
         const newTask: Task = {
@@ -155,9 +159,114 @@ export const useGameStore = create<GameStore>()(
           };
         });
       },
+
+      unlockAccessory: (accessoryId) => {
+        set((state) => {
+          const accessory = state.accessories.find(a => a.id === accessoryId);
+          if (accessory) {
+            return {
+              accessories: state.accessories.map(a =>
+                a.id === accessoryId
+                  ? { ...a, unlocked: true }
+                  : a
+              ),
+            };
+          }
+          return state;
+        });
+      },
+
+      toggleAccessory: (accessoryId) => {
+        set((state) => {
+          const accessory = state.accessories.find(a => a.id === accessoryId);
+          if (accessory) {
+            return {
+              accessories: state.accessories.map(a =>
+                a.id === accessoryId
+                  ? { ...a, equipped: !a.equipped }
+                  : a
+              ),
+            };
+          }
+          return state;
+        });
+      },
     }),
     {
       name: 'omlom-game-storage',
+      onRehydrateStorage: () => (state) => {
+        // Add default tasks if no tasks exist
+        if (state && state.tasks.length === 0) {
+          const defaultTasks: Task[] = [
+            {
+              id: crypto.randomUUID(),
+              title: 'Complete Math Homework Chapter 5',
+              description: 'Solve problems 1-20 from the algebra section',
+              value: 65,
+              completed: false,
+              createdAt: new Date(),
+              category: 'homework',
+              deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day from now (tomorrow)
+            },
+            {
+              id: crypto.randomUUID(),
+              title: 'Study for Biology Quiz',
+              description: 'Review cell structure and photosynthesis',
+              value: 50,
+              completed: false,
+              createdAt: new Date(),
+              category: 'revision',
+            },
+            {
+              id: crypto.randomUUID(),
+              title: 'Write English Essay Draft',
+              description: 'First draft of persuasive essay on climate change',
+              value: 85,
+              completed: false,
+              createdAt: new Date(),
+              category: 'assignment',
+            },
+            {
+              id: crypto.randomUUID(),
+              title: 'Group Project - Research Phase',
+              description: 'Gather sources for history presentation',
+              value: 70,
+              completed: false,
+              createdAt: new Date(),
+              category: 'project',
+            },
+            {
+              id: crypto.randomUUID(),
+              title: 'Practice Spanish Vocabulary',
+              description: 'Learn 25 new words from Unit 3',
+              value: 35,
+              completed: false,
+              createdAt: new Date(),
+              category: 'revision',
+            },
+            {
+              id: crypto.randomUUID(),
+              title: 'Physics Lab Report',
+              description: 'Write up results from pendulum experiment',
+              value: 75,
+              completed: false,
+              createdAt: new Date(),
+              category: 'assignment',
+            },
+            {
+              id: crypto.randomUUID(),
+              title: 'Read Chapter 7 - World History',
+              description: 'Read and take notes on Renaissance period',
+              value: 45,
+              completed: false,
+              createdAt: new Date(),
+              category: 'homework',
+            },
+          ];
+          state.tasks = defaultTasks;
+          state.omlom = calculateOmlomState(defaultTasks);
+        }
+      },
     }
   )
 );

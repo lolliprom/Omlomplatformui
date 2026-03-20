@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Trophy, Sparkles, Flame, Calendar, Award, Share2, Download } from 'lucide-react';
 
 export default function Profile() {
-  const { stats, omlom, inventory, tasks } = useGameStore();
+  const { stats, omlom, accessories } = useGameStore();
 
   const achievements = [
     { id: 1, name: 'First Steps', description: 'Complete your first quest', unlocked: stats.tasksCompleted >= 1, icon: '🎯' },
@@ -37,7 +37,7 @@ export default function Profile() {
           <div className="relative mb-4">
             <div className="absolute -inset-4 border-4 border-purple-300 rounded-full opacity-50" />
             <div className="relative">
-              <OmlomCharacter state={omlom} size="large" />
+              <OmlomCharacter state={omlom} size="large" accessories={accessories} />
             </div>
           </div>
 
@@ -143,12 +143,12 @@ export default function Profile() {
         <TabsContent value="inventory" className="space-y-3 mt-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg">Your Items</h3>
-            <Badge>{inventory.length} items</Badge>
+            <Badge>{accessories.length} items</Badge>
           </div>
 
-          {inventory.length > 0 ? (
+          {accessories.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
-              {inventory.map((item, index) => (
+              {accessories.map((item, index) => (
                 <Card key={index} className="p-4 text-center">
                   <div className="text-4xl mb-2">
                     {item === 'Rare Item' ? '💎' : item === 'Uncommon Item' ? '🎁' : '📦'}
